@@ -4,7 +4,8 @@
   "description": "Text-Based Custom Nutrition and Hydration WhatsApp Group Scheduler",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "express": "^4.21.2",
