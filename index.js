@@ -2,13 +2,17 @@ const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const cron = require("node-cron");
 const path = require("path");
+const express = require("express");
 const config = require("./config");
+
+// Initialize Express web wrapper for Render's mandatory health check ping
+const app = express();
 
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
   }
 });
 
@@ -84,3 +88,8 @@ function scheduleHourlyReminders() {
 }
 
 client.initialize();
+
+// Simple endpoint so Render web service pings stay green
+app.get("/", (req, res) => res.send("Meal Reminder Bot is Live"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Web monitoring port bound on ${PORT}`));
