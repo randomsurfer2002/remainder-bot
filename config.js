@@ -1,43 +1,55 @@
 // ==========================================================
-// EDIT EVERYTHING IN THIS FILE TO CUSTOMIZE YOUR BOT
+// CREATIVE TEXT-ONLY PLAN CONFIGURATION FILE
 // ==========================================================
 
 module.exports = {
-  // Must match your WhatsApp group's name EXACTLY (case-sensitive)
+  // Must match your WhatsApp group's name EXACTLY (case-sensitive)[cite: 1]
   groupName: "Family Health Group",
 
-  // ---------------- MEAL REMINDERS ----------------
-  // Cron format: "minute hour * * *"  (24-hour clock)
-  meals: {
-    breakfast: {
-      cron: "0 8 * * *", // 8:00 AM every day
-      message: "🍳 Good morning! Time for *breakfast*. Eat a healthy meal to start your day right! 🌞",
-      image: "./images/breakfast.jpg"
+  // ⏰ Targeted Daily Routine Timeline (Afresh, Shakes, & Main Meals)
+  // Cron format: "minute hour * * *" (24-hour clock)[cite: 1]
+  specificReminders: [
+    {
+      cron: "0 6 * * *", // 6:00 AM
+      message: "🌅 *6:00 AM | METABOLISM IGNITION* 🌅\nWake up, team! It's time to boil some water and brew your first hot cup of *Afresh*. Let's clear out the morning fog, activate our fat-burning engine, and kick off the day with maximum focus! ☕🔥"
     },
-    lunch: {
-      cron: "0 13 * * *", // 1:00 PM every day
-      message: "🍛 It's *lunch time*! Don't skip your meal, fuel up for the rest of the day. 💪",
-      image: "./images/lunch.jpg"
+    {
+      cron: "0 8 * * *", // 8:00 AM
+      message: "🥤 *8:00 AM | MORNING FUEL* 🥤\nTime to feed your muscles the premium stuff! Get your blenders or shakers ready for your morning *Herbalife Nutrition Shake*. Pack it clean, mix it smooth, and drink up your core macros to power your day! 💪✨"
     },
-    dinner: {
-      cron: "0 20 * * *", // 8:00 PM every day
-      message: "🍽️ *Dinner time*! Enjoy a light, healthy dinner and wind down for the day. 🌙",
-      image: "./images/dinner.jpg"
+    {
+      cron: "0 9 * * *", // 9:00 AM
+      message: "🍳 *9:00 AM | BREAKFAST TIME* 🍳\nBreakfast is officially served! Keep it clean, nutritious, and perfectly aligned with your goals. Fuel your body right so you dominate the rest of your morning tasks! 🌞 plate up!"
+    },
+    {
+      cron: "0 11 * * *", // 11:00 AM
+      message: "☀️ *11:00 AM | MID-DAY RECHARGE* ☀️\nMid-day slump? Not on our watch. Keep your cognitive drive high and your body burning clean energy. Time for your second cup of *Afresh*! Let's stay alert and crushed our targets! ☕🔋"
+    },
+    {
+      cron: "0 13 * * *", // 1:00 PM
+      message: "🍛 *1:00 PM | LUNCH POWER HOUR* 🍛\nThe clock hits 1! Time to pause, step away, and smash a healthy, high-protein *Lunch*. Log your macros, track your portions, and don't skip out on your clean fuel! 🥗👊"
+    },
+    {
+      cron: "0 16 * * *", // 4:00 PM
+      message: "🌆 *4:00 PM | EVENING ENERGY CHECK* 🌆\nKeep the momentum rolling into the evening! Re-energize your system and torch unwanted cravings with your third and final cup of *Afresh*. Pour a warm cup and lock back in! ☕🎯"
+    },
+    {
+      cron: "0 20 * * *", // 8:00 PM
+      message: "🍽️ *8:00 PM | THE FINAL RECOVERY LAYER* 🍽️\nTime to wrap up the day's intake right. Let's hit our evening *Herbalife Shake or a crisp, light Dinner*. Keep it clean, low-calorie, and let your body recover cleanly overnight. Dinner is served! 🍲🥛"
     }
-  },
+  ],
 
-  // ---------------- HOURLY WATER / SHAKE REMINDERS ----------------
+  // 💧 Hourly Hydration Matrix
   hourly: {
-    cron: "0 * * * *",     // runs every hour, on the hour
-    activeStartHour: 7,    // don't send before 7 AM
-    activeEndHour: 22,     // don't send after 10 PM
-    // The bot alternates through this list each hour so it doesn't
-    // repeat the exact same message every single time.
+    cron: "0 * * * *",     // Runs every hour, on the hour[cite: 1]
+    activeStartHour: 7,    // 7 AM[cite: 1]
+    activeEndHour: 22,     // 10 PM[cite: 1]
+    // The bot cycles through these high-energy phrases hourly so the chat stays fresh
     messages: [
-      "💧 *Water Reminder*: Drink a glass of water now! Stay hydrated. 🚰",
-      "🥤 *Shake Reminder*: Time for your Afresh / Herbalife shake! 🌿",
-      "💧 *Water Reminder*: Another glass of water — keep sipping through the day! 🚰",
-      "🥤 *Shake Reminder*: Don't forget your Herbalife / Afresh shake! 🌿"
+      "💧 *HOURLY HYDRATION ALERT!* Stop scrolling and slam a full glass of water right now. Clear skin, high performance, and heavy lifting depend on it! 🚰",
+      "💧 *WATER CHECK!* Keep your cellular hydration up and your metabolism firing. Put down your phone, grab a glass, and chug! 🌊⚡",
+      "💧 *DRINK WATER REMINDER!* Don't wait until you're thirsty—that means you're already dry. Go drink 250ml of clean water immediately! 🧊👀",
+      "💧 *HYDRATION EMPOWERMENT!* Flush out toxins and keep your energy levels peaking. Take a quick water break right now! 🚰🏆"
     ]
   }
 };
