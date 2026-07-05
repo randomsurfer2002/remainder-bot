@@ -1,31 +1,28 @@
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
+const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const cron = require("node-cron");
-const path = require("path");
 const express = require("express");
 const config = require("./config");
 
-// Initialize Express web wrapper for Render's mandatory health check ping
 const app = express();
+let targetChatId = null;
+let hourlyIndex = 0;
 
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] // Optimized memory configurations for cloud hosting
   }
 });
 
-let targetChatId = null;
-let hourlyIndex = 0;
-
-// -------- Show QR code to log in (scan once with your phone) --------
+// -------- Show QR code to log in (Scan via Render Logs dashboard) --------
 client.on("qr", (qr) => {
   console.log("Scan this QR code with WhatsApp (Linked Devices):");
   qrcode.generate(qr, { small: true });
 });
 
-// -------- Once logged in, find the target group --------
+// -------- Once logged in, pin the target group identity --------
 client.on("ready", async () => {
   console.log("✅ WhatsApp client is ready.");
 
@@ -44,52 +41,57 @@ client.on("ready", async () => {
 
   targetChatId = group.id._serialized;
   console.log(`✅ Found target group: ${config.groupName}`);
-  scheduleMealReminders();
-  scheduleHourlyReminders();
+  
+  // Launch both automation streams
+  scheduleSpecificReminders();
+  scheduleHourlyWaterReminders();
 });
 
 client.on("auth_failure", (msg) => console.error("Auth failure:", msg));
 client.on("disconnected", (reason) => console.log("Client disconnected:", reason));
 
-// -------- Meal reminders (with images) --------
-function scheduleMealReminders() {
-  Object.entries(config.meals).forEach(([mealName, meal]) => {
-    cron.schedule(meal.cron, async () => {
+// -------- Stream A: Specific Plan Timestamps (6am, 8am, 9am, 11am, 1pm, 4pm, 8pm) --------
+function scheduleSpecificReminders() {
+  config.specificReminders.forEach((reminder, index) => {
+    cron.schedule(reminder.cron, async () => {
+      if (!targetChatId) return;
       try {
-        const imagePath = path.join(__dirname, meal.image);
-        const media = MessageMedia.fromFilePath(imagePath);
-        await client.sendMessage(targetChatId, media, { caption: meal.message });
-        console.log(`Sent ${mealName} reminder.`);
+        await client.sendMessage(targetChatId, reminder.message);
+        console.log(`Successfully dispatched daily scheduled alert #${index + 1}`);
       } catch (err) {
-        console.error(`Failed to send ${mealName} reminder:`, err.message);
-        // Fallback: send text only if the image is missing/broken
-        await client.sendMessage(targetChatId, meal.message).catch(() => {});
+        console.error(`Failed to dispatch daily scheduled alert #${index + 1}:`, err.message);
       }
     });
   });
 }
 
-// -------- Hourly water / shake reminders --------
-function scheduleHourlyReminders() {
+// -------- Stream B: Hourly Water Reminders (7 AM to 10 PM) --------
+function scheduleHourlyWaterReminders() {
   cron.schedule(config.hourly.cron, async () => {
+    if (!targetChatId) return;
+    
     const hour = new Date().getHours();
+    // Enforce the active operational window restriction
     if (hour < config.hourly.activeStartHour || hour > config.hourly.activeEndHour) {
-      return; // outside active window, skip
+      return; 
     }
+    
+    // Dynamically cycle through the message index list natively
     const message = config.hourly.messages[hourlyIndex % config.hourly.messages.length];
     hourlyIndex++;
+    
     try {
       await client.sendMessage(targetChatId, message);
-      console.log("Sent hourly reminder:", message);
+      console.log("Dispatched hourly water check text.");
     } catch (err) {
-      console.error("Failed to send hourly reminder:", err.message);
+      console.error("Failed to send hourly hydration text:", err.message);
     }
   });
 }
 
 client.initialize();
 
-// Simple endpoint so Render web service pings stay green
-app.get("/", (req, res) => res.send("Meal Reminder Bot is Live"));
+// Express app instance listening on assigned environment ports to satisfy Render checks
+app.get("/", (req, res) => res.send("Text-Only Nutrition & Water Scheduler is Live!"));
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Web monitoring port bound on ${PORT}`));
+app.listen(PORT, () => console.log(`HTTP Listener successfully bound to port ${PORT}`));
