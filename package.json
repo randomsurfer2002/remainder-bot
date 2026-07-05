@@ -1,16 +1,15 @@
 {
   "name": "whatsapp-reminder-bot",
   "version": "1.0.0",
-  "description": "WhatsApp bot that sends meal reminders (with images) and hourly water/shake reminders to a group",
+  "description": "Text-Based Custom Nutrition and Hydration WhatsApp Group Scheduler",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.21.2",
-    "whatsapp-web.js": "^1.26.0",
+    "node-cron": "^3.0.3",
     "qrcode-terminal": "^0.12.0",
-    "node-cron": "^3.0.3"
+    "whatsapp-web.js": "^1.26.0"
   }
 }
-
