@@ -12,7 +12,7 @@ let hourlyIndex = 0;
 // 📲 PHONE LINKING CONFIGURATION:
 // Put your country code + full mobile number below (No spaces, no '+' sign)
 // Example for India: "919876543210"
-const MY_PHONE_NUMBER = "91XXXXXXXXXX"; 
+const MY_PHONE_NUMBER = "919368891933"; 
 
 // ==========================================================
 // DYNAMIC CHROME EXECUTABLE RESOLVER (FOR RENDER DEPLOYMENT)
