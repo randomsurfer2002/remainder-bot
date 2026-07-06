@@ -3,11 +3,11 @@
 // ==========================================================
 
 module.exports = {
-  // Must match your WhatsApp group's name EXACTLY (case-sensitive)[cite: 1]
+  // Must match your WhatsApp group's name EXACTLY (case-sensitive)
   groupName: "Family Health Group",
 
   // ⏰ Targeted Daily Routine Timeline (Afresh, Shakes, & Main Meals)
-  // Cron format: "minute hour * * *" (24-hour clock)[cite: 1]
+  // Cron format: "minute hour * * *" (24-hour clock)
   specificReminders: [
     {
       cron: "0 6 * * *", // 6:00 AM
@@ -15,15 +15,15 @@ module.exports = {
     },
     {
       cron: "0 8 * * *", // 8:00 AM
-      message: "🥤 *8:00 AM | MORNING FUEL* 🥤\nTime to feed your muscles the premium stuff! Get your blenders or shakers ready for your morning *Herbalife Nutrition Shake*. Pack it clean, mix it smooth, and drink up your core macros to power your day! 💪✨"
+      message: "🥤 *8:00 AM | MORNING FUEL* 🥤\nTime to feed your muscles the premium stuff! Get your shakers ready for your morning *Herbalife Nutrition Shake*. Pack it clean, mix it smooth, and drink up your core macros to power your day! 💪✨"
     },
     {
       cron: "0 9 * * *", // 9:00 AM
-      message: "🍳 *9:00 AM | BREAKFAST TIME* 🍳\nBreakfast is officially served! Keep it clean, nutritious, and perfectly aligned with your goals. Fuel your body right so you dominate the rest of your morning tasks! 🌞 plate up!"
+      message: "🍳 *9:00 AM | BREAKFAST TIME* 🍳\nBreakfast is officially served! Keep it clean, nutritious, and perfectly aligned with your goals. Fuel your body right so you dominate the rest of your morning tasks! 🌞 Plate up!"
     },
     {
       cron: "0 11 * * *", // 11:00 AM
-      message: "☀️ *11:00 AM | MID-DAY RECHARGE* ☀️\nMid-day slump? Not on our watch. Keep your cognitive drive high and your body burning clean energy. Time for your second cup of *Afresh*! Let's stay alert and crushed our targets! ☕🔋"
+      message: "☀️ *11:00 AM | MID-DAY RECHARGE* ☀️\nMid-day slump? Not on our watch. Keep your cognitive drive high and your body burning clean energy. Time for your second cup of *Afresh*! Let's stay alert and crush our targets! ☕🔋"
     },
     {
       cron: "0 13 * * *", // 1:00 PM
@@ -41,9 +41,9 @@ module.exports = {
 
   // 💧 Hourly Hydration Matrix
   hourly: {
-    cron: "0 * * * *",     // Runs every hour, on the hour[cite: 1]
-    activeStartHour: 7,    // 7 AM[cite: 1]
-    activeEndHour: 22,     // 10 PM[cite: 1]
+    cron: "0 * * * *",     // Runs every hour, on the hour
+    activeStartHour: 7,    // 7 AM
+    activeEndHour: 22,     // 10 PM
     // The bot cycles through these high-energy phrases hourly so the chat stays fresh
     messages: [
       "💧 *HOURLY HYDRATION ALERT!* Stop scrolling and slam a full glass of water right now. Clear skin, high performance, and heavy lifting depend on it! 🚰",
