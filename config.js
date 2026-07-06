@@ -44,7 +44,6 @@ module.exports = {
     cron: "0 * * * *",     // Runs every hour, on the hour
     activeStartHour: 7,    // 7 AM
     activeEndHour: 22,     // 10 PM
-    // The bot cycles through these high-energy phrases hourly so the chat stays fresh
     messages: [
       "💧 *HOURLY HYDRATION ALERT!* Stop scrolling and slam a full glass of water right now. Clear skin, high performance, and heavy lifting depend on it! 🚰",
       "💧 *WATER CHECK!* Keep your cellular hydration up and your metabolism firing. Put down your phone, grab a glass, and chug! 🌊⚡",
