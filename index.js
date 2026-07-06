@@ -1,5 +1,4 @@
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
 const cron = require("node-cron");
 const express = require("express");
 const path = require("path");
@@ -9,6 +8,11 @@ const config = require("./config");
 const app = express();
 let targetChatId = null;
 let hourlyIndex = 0;
+
+// 📲 PHONE LINKING CONFIGURATION:
+// Put your country code + full mobile number below (No spaces, no '+' sign)
+// Example for India: "919876543210"
+const MY_PHONE_NUMBER = "91XXXXXXXXXX"; 
 
 // ==========================================================
 // DYNAMIC CHROME EXECUTABLE RESOLVER (FOR RENDER DEPLOYMENT)
@@ -32,20 +36,33 @@ const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    executablePath: customExecutablePath || undefined, // Overrides fallback guessing
+    executablePath: customExecutablePath || undefined,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
   }
 });
 
-// -------- Show QR code to log in (Render-friendly URL fallback) --------
-client.on("qr", (qr) => {
-  console.log("\n=================================================================");
-  console.log("❌ RENDER LOGS SQUISHING THE QR CODE? OPEN THIS LINK INSTEAD:");
-  console.log(`👉 https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
-  console.log("=================================================================\n");
-  
-  // Terminal text fallback printout configuration (large block layout)
-  qrcode.generate(qr, { small: false });
+// -------- Link via Phone Number Pairing Code (No QR Needed) --------
+let pairingCodeRequested = false;
+client.on("qr", async (qr) => {
+  if (!pairingCodeRequested && MY_PHONE_NUMBER !== "91XXXXXXXXXX") {
+    console.log("\n=================================================================");
+    console.log(`📲 GENERATING PAIRING CODE FOR: +${MY_PHONE_NUMBER}`);
+    console.log("=================================================================\n");
+    
+    try {
+      // Requests the 8-digit alphanumeric pairing code from WhatsApp
+      const code = await client.requestPairingCode(MY_PHONE_NUMBER);
+      
+      console.log("\n=================================================================");
+      console.log(`🎯 YOUR WHATSAPP PAIRING CODE IS: ${code}`);
+      console.log("=================================================================\n");
+      pairingCodeRequested = true;
+    } catch (err) {
+      console.error("Failed to generate pairing code:", err.message);
+    }
+  } else if (MY_PHONE_NUMBER === "91XXXXXXXXXX") {
+    console.log("⚠️ Configuration Error: Please enter your real phone number on line 12 of index.js!");
+  }
 });
 
 // -------- Once logged in, map target group identity --------
@@ -60,7 +77,7 @@ client.on("ready", async () => {
   if (!group) {
     console.error(
       `❌ Could not find a group named "${config.groupName}". ` +
-      `Check config.js — the name must match exactly.`
+      `Create it on your phone first or check spelling in config.js.`
     );
     return;
   }
@@ -116,6 +133,6 @@ function scheduleHourlyWaterReminders() {
 client.initialize();
 
 // Express app instance listening on assigned environment ports to satisfy Render checks
-app.get("/", (req, res) => res.send("Text-Only Nutrition & Water Scheduler is Live!"));
+app.get("/", (req, res) => res.send("Text-Only Nutrition & Water Scheduler with Phone Pairing is Live!"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`HTTP Listener successfully bound to port ${PORT}`));
