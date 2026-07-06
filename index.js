@@ -37,10 +37,15 @@ const client = new Client({
   }
 });
 
-// -------- Show QR code to log in --------
+// -------- Show QR code to log in (Render-friendly URL fallback) --------
 client.on("qr", (qr) => {
-  console.log("Scan this QR code with WhatsApp (Linked Devices):");
-  qrcode.generate(qr, { small: true });
+  console.log("\n=================================================================");
+  console.log("❌ RENDER LOGS SQUISHING THE QR CODE? OPEN THIS LINK INSTEAD:");
+  console.log(`👉 https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
+  console.log("=================================================================\n");
+  
+  // Terminal text fallback printout configuration (large block layout)
+  qrcode.generate(qr, { small: false });
 });
 
 // -------- Once logged in, map target group identity --------
@@ -71,7 +76,7 @@ client.on("ready", async () => {
 client.on("auth_failure", (msg) => console.error("Auth failure:", msg));
 client.on("disconnected", (reason) => console.log("Client disconnected:", reason));
 
-// -------- Stream A: Timed Routine Alerts (6am, 8am, 9am, 11am, 1pm, 4pm, 8pm) --------
+// -------- Stream A: Timed Routine Alerts --------
 function scheduleSpecificReminders() {
   config.specificReminders.forEach((reminder, index) => {
     cron.schedule(reminder.cron, async () => {
