@@ -8,48 +8,63 @@ const config = require("./config");
 const app = express();
 let sock = null;
 let hourlyIndex = 0;
+let isGeneratingCode = false; // Prevents spamming multiple code requests
 
 // 📲 PHONE LINKING CONFIGURATION:
 const MY_PHONE_NUMBER = "919368891933"; 
 
 async function startBot() {
-  // Sets up low-memory session storage in a local folder
   const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
 
   sock = makeWASocket({
     auth: state,
-    logger: pino({ level: "silent" }), // Keeps logs dead silent to save memory
-    printQRInTerminal: false
+    logger: pino({ level: "silent" }),
+    printQRInTerminal: false,
+    connectTimeoutMs: 60000, // Give it a full minute to negotiate handshake stable
+    keepAliveIntervalMs: 30000
   });
 
-  // Request the 8-digit pairing code if not authenticated
-  if (!sock.authState.creds.registered) {
+  // Request pairing code safely without spamming loops
+  if (!sock.authState.creds.registered && !isGeneratingCode) {
+    isGeneratingCode = true;
+    
+    // 10-second delay on boot to let the socket establish its initial ground connection
     setTimeout(async () => {
       try {
+        console.log("⏳ Fetching a stable pairing code from WhatsApp...");
         let code = await sock.requestPairingCode(MY_PHONE_NUMBER);
-        // Format the code nicely with a hyphen if it doesn't have one
+        
         if (code && !code.includes("-")) {
           code = code.substring(0, 4) + "-" + code.substring(4);
         }
         console.log("\n=================================================================");
-        console.log(`🎯 YOUR WHATSAPP PAIRING CODE IS: ${code}`);
+        console.log(`🎯 ENTER THIS STABLE CODE ON YOUR PHONE NOW: ${code}`);
         console.log("=================================================================\n");
       } catch (err) {
-        console.error("Pairing code request timed out, retrying on next boot...", err.message);
+        console.error("Pairing code error:", err.message);
+      } finally {
+        // Allow generation again only after a long window if this one fails
+        setTimeout(() => { isGeneratingCode = false; }, 30000);
       }
-    }, 5000); // 5 second safety delay to let sockets stabilize
+    }, 10000); 
   }
 
-  // Monitor connection states
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
     
     if (connection === "close") {
-      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log(`Connection closed due to error. Reconnecting: ${shouldReconnect}`);
-      if (shouldReconnect) startBot(); // Auto-restart on network drops
+      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      
+      console.log(`Socket status: Closed. Reason Code: ${statusCode || "Unknown"}. Reconnecting: ${shouldReconnect}`);
+      
+      // Only restart core engine if it wasn't a deliberate logout or a collision crash
+      if (shouldReconnect) {
+        setTimeout(() => { startBot(); }, 5000); // 5s back-off delay before reconnecting to prevent loops
+      }
     } else if (connection === "open") {
-      console.log("✅ WhatsApp client is successfully connected!");
+      console.log("✅ SUCCESS! WhatsApp client is officially linked and ready.");
+      isGeneratingCode = false;
       setupSchedules();
     }
   });
@@ -113,10 +128,8 @@ function setupSchedules() {
   });
 }
 
-// Start the core engine
 startBot();
 
-// Keep Render happy with a live web page endpoint
 app.get("/", (req, res) => res.send("Browserless Health Bot Engine is Live!"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`HTTP active on port ${PORT}`));
