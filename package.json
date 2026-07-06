@@ -1,17 +1,16 @@
 {
   "name": "whatsapp-reminder-bot",
   "version": "1.0.0",
-  "description": "Text-Based Custom Nutrition and Hydration WhatsApp Group Scheduler",
+  "description": "Browserless Health Bot Engine",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "start": "node index.js"
   },
   "dependencies": {
-  "@whiskeysockets/baileys": "^6.7.9",
-  "node-cron": "^3.0.3",
-  "express": "^4.19.2",
-  "pino": "^9.0.0",
-  "qrcode-terminal": "^0.12.0"
+    "@whiskeysockets/baileys": "^6.7.9",
+    "node-cron": "^3.0.3",
+    "express": "^4.19.2",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0"
   }
 }
