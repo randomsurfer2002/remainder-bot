@@ -2,27 +2,48 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const cron = require("node-cron");
 const express = require("express");
+const path = require("path");
+const fs = require("fs");
 const config = require("./config");
 
 const app = express();
 let targetChatId = null;
 let hourlyIndex = 0;
 
+// ==========================================================
+// DYNAMIC CHROME EXECUTABLE RESOLVER (FOR RENDER DEPLOYMENT)
+// ==========================================================
+let customExecutablePath = "";
+try {
+  const baseDir = path.join(__dirname, ".cache", "puppeteer", "chrome");
+  if (fs.existsSync(baseDir)) {
+    const versions = fs.readdirSync(baseDir);
+    if (versions.length > 0) {
+      customExecutablePath = path.join(baseDir, versions[0], "chrome-linux64", "chrome");
+      console.log(`🎯 Located Chrome executable at: ${customExecutablePath}`);
+    }
+  }
+} catch (e) {
+  console.error("Error dynamically locating Chrome path:", e.message);
+}
+
+// Initialize WhatsApp Web Client with localized Puppeteer overrides
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"] // Optimized memory configurations for cloud hosting
+    executablePath: customExecutablePath || undefined, // Overrides fallback guessing
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
   }
 });
 
-// -------- Show QR code to log in (Scan via Render Logs dashboard) --------
+// -------- Show QR code to log in --------
 client.on("qr", (qr) => {
   console.log("Scan this QR code with WhatsApp (Linked Devices):");
   qrcode.generate(qr, { small: true });
 });
 
-// -------- Once logged in, pin the target group identity --------
+// -------- Once logged in, map target group identity --------
 client.on("ready", async () => {
   console.log("✅ WhatsApp client is ready.");
 
@@ -42,7 +63,7 @@ client.on("ready", async () => {
   targetChatId = group.id._serialized;
   console.log(`✅ Found target group: ${config.groupName}`);
   
-  // Launch both automation streams
+  // Fire up scheduling loops
   scheduleSpecificReminders();
   scheduleHourlyWaterReminders();
 });
@@ -50,7 +71,7 @@ client.on("ready", async () => {
 client.on("auth_failure", (msg) => console.error("Auth failure:", msg));
 client.on("disconnected", (reason) => console.log("Client disconnected:", reason));
 
-// -------- Stream A: Specific Plan Timestamps (6am, 8am, 9am, 11am, 1pm, 4pm, 8pm) --------
+// -------- Stream A: Timed Routine Alerts (6am, 8am, 9am, 11am, 1pm, 4pm, 8pm) --------
 function scheduleSpecificReminders() {
   config.specificReminders.forEach((reminder, index) => {
     cron.schedule(reminder.cron, async () => {
@@ -65,18 +86,16 @@ function scheduleSpecificReminders() {
   });
 }
 
-// -------- Stream B: Hourly Water Reminders (7 AM to 10 PM) --------
+// -------- Stream B: Hourly Water Breaks (7 AM to 10 PM) --------
 function scheduleHourlyWaterReminders() {
   cron.schedule(config.hourly.cron, async () => {
     if (!targetChatId) return;
     
     const hour = new Date().getHours();
-    // Enforce the active operational window restriction
     if (hour < config.hourly.activeStartHour || hour > config.hourly.activeEndHour) {
       return; 
     }
     
-    // Dynamically cycle through the message index list natively
     const message = config.hourly.messages[hourlyIndex % config.hourly.messages.length];
     hourlyIndex++;
     
