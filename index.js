@@ -9,9 +9,6 @@ const app = express();
 let targetChatId = null;
 let hourlyIndex = 0;
 
-// 📲 PHONE LINKING CONFIGURATION:
-const MY_PHONE_NUMBER = "919368891933"; 
-
 // ==========================================================
 // DYNAMIC CHROME EXECUTABLE RESOLVER (FOR RENDER DEPLOYMENT)
 // ==========================================================
@@ -38,38 +35,22 @@ const client = new Client({
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage", // Bypasses small memory partition crashes
-      "--disable-gpu",           // Drops heavy hardware acceleration features
-      "--disable-audio-output",  // Turns off background audio threads
-      "--no-first-run",          // Skips setup overhead configurations
-      "--no-zygote",             // Cuts idle multi-processing duplication
-      "--single-process"         // Bundles everything into one strict core process
+      "--disable-dev-shm-usage", 
+      "--disable-gpu",           
+      "--disable-audio-output",  
+      "--no-first-run",          
+      "--no-zygote",             
+      "--single-process"         
     ]
   }
 });
 
-// -------- Link via Phone Number Pairing Code (No QR Needed) --------
-let pairingCodeRequested = false;
-client.on("qr", async (qr) => {
-  if (!pairingCodeRequested && MY_PHONE_NUMBER !== "91XXXXXXXXXX") {
-    console.log("\n=================================================================");
-    console.log(`📲 GENERATING PAIRING CODE FOR: +${MY_PHONE_NUMBER}`);
-    console.log("=================================================================\n");
-    
-    try {
-      // Requests the 8-digit alphanumeric pairing code from WhatsApp
-      const code = await client.requestPairingCode(MY_PHONE_NUMBER);
-      
-      console.log("\n=================================================================");
-      console.log(`🎯 YOUR WHATSAPP PAIRING CODE IS: ${code}`);
-      console.log("=================================================================\n");
-      pairingCodeRequested = true;
-    } catch (err) {
-      console.error("Failed to generate pairing code:", err.message);
-    }
-  } else if (MY_PHONE_NUMBER === "91XXXXXXXXXX") {
-    console.log("⚠️ Configuration Error: Please enter your real phone number on line 12 of index.js!");
-  }
+// -------- Clean URL Fallback (Bypasses Pairing Code Timeout) --------
+client.on("qr", (qr) => {
+  console.log("\n=================================================================");
+  console.log("🔗 CLICK THIS LINK TO OPEN AND SCAN YOUR QR CODE:");
+  console.log(`👉 https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
+  console.log("=================================================================\n");
 });
 
 // -------- Once logged in, map target group identity --------
@@ -140,6 +121,6 @@ function scheduleHourlyWaterReminders() {
 client.initialize();
 
 // Express app instance listening on assigned environment ports to satisfy Render checks
-app.get("/", (req, res) => res.send("Text-Only Nutrition & Water Scheduler with Phone Pairing is Live!"));
+app.get("/", (req, res) => res.send("Text-Only Nutrition & Water Scheduler is Live!"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`HTTP Listener successfully bound to port ${PORT}`));
