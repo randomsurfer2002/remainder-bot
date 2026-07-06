@@ -8,7 +8,7 @@ const config = require("./config");
 const app = express();
 let sock = null;
 let hourlyIndex = 0;
-let isGeneratingCode = false; // Prevents spamming multiple code requests
+let isGeneratingCode = false;
 
 // 📲 PHONE LINKING CONFIGURATION:
 const MY_PHONE_NUMBER = "919368891933"; 
@@ -16,19 +16,26 @@ const MY_PHONE_NUMBER = "919368891933";
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
 
+  // If a previous socket is lingering, kill it cleanly first
+  if (sock) {
+    try {
+      sock.logout();
+      sock.end();
+    } catch (e) {}
+    sock = null;
+  }
+
   sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
     printQRInTerminal: false,
-    connectTimeoutMs: 60000, // Give it a full minute to negotiate handshake stable
+    connectTimeoutMs: 60000,
     keepAliveIntervalMs: 30000
   });
 
-  // Request pairing code safely without spamming loops
   if (!sock.authState.creds.registered && !isGeneratingCode) {
     isGeneratingCode = true;
     
-    // 10-second delay on boot to let the socket establish its initial ground connection
     setTimeout(async () => {
       try {
         console.log("⏳ Fetching a stable pairing code from WhatsApp...");
@@ -43,10 +50,9 @@ async function startBot() {
       } catch (err) {
         console.error("Pairing code error:", err.message);
       } finally {
-        // Allow generation again only after a long window if this one fails
-        setTimeout(() => { isGeneratingCode = false; }, 30000);
+        setTimeout(() => { isGeneratingCode = false; }, 45000);
       }
-    }, 10000); 
+    }, 12000); 
   }
 
   sock.ev.on("connection.update", async (update) => {
@@ -54,13 +60,21 @@ async function startBot() {
     
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       
+      // If code is 405 (Connection Replaced), wait longer and clear cache before rebooting
+      if (statusCode === DisconnectReason.connectionReplaced || statusCode === 405) {
+        console.log("⚠️ Connection conflict detected (405). Resetting connection layout...");
+        isGeneratingCode = false;
+        if (sock) sock.end();
+        setTimeout(() => { startBot(); }, 15000); // 15-second cool-down delay
+        return;
+      }
+
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       console.log(`Socket status: Closed. Reason Code: ${statusCode || "Unknown"}. Reconnecting: ${shouldReconnect}`);
       
-      // Only restart core engine if it wasn't a deliberate logout or a collision crash
       if (shouldReconnect) {
-        setTimeout(() => { startBot(); }, 5000); // 5s back-off delay before reconnecting to prevent loops
+        setTimeout(() => { startBot(); }, 8000);
       }
     } else if (connection === "open") {
       console.log("✅ SUCCESS! WhatsApp client is officially linked and ready.");
