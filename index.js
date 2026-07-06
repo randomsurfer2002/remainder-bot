@@ -37,7 +37,7 @@ async function startBot() {
       } catch (err) {
         console.error("Pairing code request timed out, retrying on next boot...", err.message);
       }
-    }, 3000);
+    }, 5000); // 5 second safety delay to let sockets stabilize
   }
 
   // Monitor connection states
