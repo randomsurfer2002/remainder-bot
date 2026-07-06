@@ -10,8 +10,6 @@ let targetChatId = null;
 let hourlyIndex = 0;
 
 // 📲 PHONE LINKING CONFIGURATION:
-// Put your country code + full mobile number below (No spaces, no '+' sign)
-// Example for India: "919876543210"
 const MY_PHONE_NUMBER = "919368891933"; 
 
 // ==========================================================
@@ -31,13 +29,22 @@ try {
   console.error("Error dynamically locating Chrome path:", e.message);
 }
 
-// Initialize WhatsApp Web Client with localized Puppeteer overrides
+// Initialize WhatsApp Web Client with RAM-saving optimization flags
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
     headless: true,
     executablePath: customExecutablePath || undefined,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Bypasses small memory partition crashes
+      "--disable-gpu",           // Drops heavy hardware acceleration features
+      "--disable-audio-output",  // Turns off background audio threads
+      "--no-first-run",          // Skips setup overhead configurations
+      "--no-zygote",             // Cuts idle multi-processing duplication
+      "--single-process"         // Bundles everything into one strict core process
+    ]
   }
 });
 
