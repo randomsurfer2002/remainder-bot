@@ -1,3 +1,4 @@
+// index.js
 const makeWASocket = require("@whiskeysockets/baileys").default;
 const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require("@whiskeysockets/baileys");
 const pino = require("pino");
@@ -13,15 +14,14 @@ let hourlyIndex = 0;
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
 
-  // Fetch the absolute newest connection settings dynamically to clear the 405 block
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(`📡 Connecting using WA Web Version: ${version.join('.')}, Latest: ${isLatest}`);
 
   sock = makeWASocket({
     auth: state,
     logger: pino({ level: "silent" }),
-    version, // 👈 Explicitly pass the updated version matrix
-    browser: ["Mac OS", "Desktop", "10.15.7"], // 👈 Pretends to be an official macOS standalone client
+    version, 
+    browser: ["Mac OS", "Desktop", "10.15.7"], 
     connectTimeoutMs: 60000,
     keepAliveIntervalMs: 30000
   });
@@ -38,7 +38,6 @@ async function startBot() {
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       
-      // If a handshake conflict pops up, take a heavy breath before retrying
       if (statusCode === 405 || statusCode === DisconnectReason.connectionReplaced) {
         console.log("⏳ Balancing protocol version mismatch... cooling down 15s.");
         setTimeout(() => { startBot(); }, 15000);
@@ -60,17 +59,24 @@ async function startBot() {
   sock.ev.on("creds.update", saveCreds);
 }
 
-// Helper function to locate your target group ID dynamically by name
+// Group Finder helper function with logs
 async function findGroupId(name) {
   try {
     const chats = await sock.groupFetchAllParticipating();
+    
+    console.log("\n📋 --- FOUND PARTICIPATING GROUPS ---");
     for (const id in chats) {
-      if (chats[id].subject.trim() === name.trim()) {
+      console.log(`Group Name: "${chats[id].subject}" | ID: ${id}`);
+    }
+    console.log("-------------------------------------\n");
+
+    for (const id in chats) {
+      if (chats[id].subject.trim().toLowerCase() === name.trim().toLowerCase()) {
         return id;
       }
     }
   } catch (e) {
-    console.error("Error fetching groups:", e.message);
+    console.error("❌ Error fetching groups:", e.message);
   }
   return null;
 }
@@ -79,8 +85,10 @@ async function findGroupId(name) {
 function setupSchedules() {
   console.log("⏰ Scheduling engines armed and ready.");
 
+  // 1. Daily reminders array loop
   config.specificReminders.forEach((reminder, index) => {
     cron.schedule(reminder.cron, async () => {
+      console.log(`⏱️ Specific timeline cron triggered for slot #${index + 1}...`);
       const targetId = await findGroupId(config.groupName);
       if (!targetId) {
         console.error(`⚠️ Could not find group: ${config.groupName}`);
@@ -88,17 +96,22 @@ function setupSchedules() {
       }
       try {
         await sock.sendMessage(targetId, { text: reminder.message });
-        console.log(`Successfully dispatched daily scheduled alert #${index + 1}`);
+        console.log(`✅ Successfully dispatched daily scheduled alert #${index + 1}`);
       } catch (err) {
-        console.error(`Alert #${index + 1} send failure:`, err.message);
+        console.error(`❌ Alert #${index + 1} send failure:`, err.message);
       }
     });
   });
 
+  // 2. Rolling hourly matrix loop
   cron.schedule(config.hourly.cron, async () => {
     const hour = new Date().getHours();
-    if (hour < config.hourly.activeStartHour || hour > config.hourly.activeEndHour) return;
+    if (hour < config.hourly.activeStartHour || hour > config.hourly.activeEndHour) {
+      console.log(`💤 Quiet hours active. Skipping hydration check for hour: ${hour}`);
+      return;
+    }
 
+    console.log("💧 Hourly hydration cron triggered. Fetching chat connection...");
     const targetId = await findGroupId(config.groupName);
     if (!targetId) return;
 
@@ -107,9 +120,9 @@ function setupSchedules() {
 
     try {
       await sock.sendMessage(targetId, { text: message });
-      console.log("Dispatched hourly water check text.");
+      console.log("✅ Dispatched hourly water check text.");
     } catch (err) {
-      console.error("Hydration send failure:", err.message);
+      console.error("❌ Hydration send failure:", err.message);
     }
   });
 }

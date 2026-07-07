@@ -1,3 +1,4 @@
+// config.js
 // ==========================================================
 // CREATIVE TEXT-ONLY PLAN CONFIGURATION FILE
 // ==========================================================
@@ -9,6 +10,10 @@ module.exports = {
   // ⏰ Targeted Daily Routine Timeline (Afresh, Shakes, & Main Meals)
   // Cron format: "minute hour * * *" (24-hour clock)
   specificReminders: [
+    {
+      cron: "5 16 * * *", // 🔥 COMFORTABLE SYSTEM TEST: Fires at exactly 4:05 PM IST
+      message: "🚀 *SYSTEM TEST ACTIVE!* 🚀\nIf you are reading this, your Render server, timezone sync, and WhatsApp connection are working flawlessly! Your bot is alive! 🎉"
+    },
     {
       cron: "0 6 * * *", // 6:00 AM
       message: "🌅 *6:00 AM | METABOLISM IGNITION* 🌅\nWake up, team! It's time to boil some water and brew your first hot cup of *Afresh*. Let's clear out the morning fog, activate our fat-burning engine, and kick off the day with maximum focus! ☕🔥"
