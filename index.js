@@ -10,21 +10,29 @@ const config = require("./config");
 const app = express();
 let sock = null;
 let hourlyIndex = 0;
-let cachedGroupId = null; // 👈 Saves your group ID in memory so we don't spam handshakes
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
-
   const { version, isLatest } = await fetchLatestBaileysVersion();
-  console.log(`📡 Connecting using WA Web Version: ${version.join('.')}, Latest: ${isLatest}`);
+  
+  console.log(`📡 Initializing WA Connection Web Version: ${version.join('.')}`);
 
   sock = makeWASocket({
     auth: state,
-    logger: pino({ level: "silent" }),
+    logger: pino({ level: "error" }), // Changed from silent to capture protocol failures
     version, 
     browser: ["Mac OS", "Desktop", "10.15.7"], 
-    connectTimeoutMs: 60000,
-    keepAliveIntervalMs: 30000
+    connectTimeoutMs: 90000,         // Increased timeout for stable cloud processing
+    keepAliveIntervalMs: 30000,
+    shouldSyncHistoryMessage: () => false // 👈 PATCH 1: Drops history processing to stop freezing
+  });
+
+  // Handle incoming credentials update
+  sock.ev.on("creds.update", saveCreds);
+
+  // PATCH 2: Block history data injection from hanging the event loop
+  sock.ev.on("messaging-history.set", () => {
+    console.log("📥 Background message history stream bypassed successfully.");
   });
 
   sock.ev.on("connection.update", async (update) => {
@@ -38,9 +46,9 @@ async function startBot() {
 
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
+      console.log(`🔄 Connection dropped. Status Code: ${statusCode}. Re-establishing link...`);
       
       if (statusCode === 405 || statusCode === DisconnectReason.connectionReplaced) {
-        console.log("⏳ Balancing protocol version mismatch... cooling down 15s.");
         setTimeout(() => { startBot(); }, 15000);
         return;
       }
@@ -51,35 +59,27 @@ async function startBot() {
       }
     } else if (connection === "open") {
       console.log("\n=======================================================");
-      console.log("✅ SUCCESS! WhatsApp client is officially linked and ready.");
+      console.log("✅ SUCCESS! WhatsApp client link is fully operational.");
       console.log("=======================================================\n");
       
-      // Cache the group ID immediately upon login to avoid runtime handshake congestion
-      await cacheTargetGroup();
       setupSchedules();
     }
   });
-
-  sock.ev.on("creds.update", saveCreds);
 }
 
-// Fetches all groups once on startup and matches your target
-async function cacheTargetGroup() {
+// Dynamic real-time helper function to locate your target group ID safely by name
+async function findGroupId(name) {
   try {
-    console.log("🔍 Resolving target group connection ID...");
     const chats = await sock.groupFetchAllParticipating();
-    
     for (const id in chats) {
-      if (chats[id].subject.trim().toLowerCase() === config.groupName.trim().toLowerCase()) {
-        cachedGroupId = id;
-        console.log(`📌 Target Group Locked: "${config.groupName}" -> ID: ${cachedGroupId}`);
-        return;
+      if (chats[id].subject.trim().toLowerCase() === name.trim().toLowerCase()) {
+        return id;
       }
     }
-    console.log(`⚠️ Warning: Could not find any group named "${config.groupName}" on this account.`);
   } catch (e) {
-    console.error("❌ Pre-login group sync failed:", e.message);
+    console.error("❌ Error performing real-time group lookup:", e.message);
   }
+  return null;
 }
 
 // -------- Scheduling Engines --------
@@ -89,18 +89,16 @@ function setupSchedules() {
   // 1. Daily routine reminders array loop
   config.specificReminders.forEach((reminder, index) => {
     cron.schedule(reminder.cron, async () => {
-      console.log(`⏱️ Daily cron slot #${index + 1} activated.`);
+      console.log(`⏱️ Daily routine schedule slot #${index + 1} activated.`);
+      const targetId = await findGroupId(config.groupName);
       
-      // If cache dropped, try a quick hot-reload
-      if (!cachedGroupId) await cacheTargetGroup();
-
-      if (!cachedGroupId) {
-        console.error(`⚠️ Dispatch dropped: ID for "${config.groupName}" is missing.`);
+      if (!targetId) {
+        console.error(`⚠️ Dispatch dropped: Could not find group "${config.groupName}".`);
         return;
       }
 
       try {
-        await sock.sendMessage(cachedGroupId, { text: reminder.message });
+        await sock.sendMessage(targetId, { text: reminder.message });
         console.log(`✅ Successfully dispatched daily scheduled alert #${index + 1}`);
       } catch (err) {
         console.error(`❌ Alert #${index + 1} send failure:`, err.message);
@@ -116,14 +114,14 @@ function setupSchedules() {
     }
 
     console.log("💧 Hourly hydration alert triggered.");
-    if (!cachedGroupId) await cacheTargetGroup();
-    if (!cachedGroupId) return;
+    const targetId = await findGroupId(config.groupName);
+    if (!targetId) return;
 
     const message = config.hourly.messages[hourlyIndex % config.hourly.messages.length];
     hourlyIndex++;
 
     try {
-      await sock.sendMessage(cachedGroupId, { text: message });
+      await sock.sendMessage(targetId, { text: message });
       console.log("✅ Dispatched hourly water check text.");
     } catch (err) {
       console.error("❌ Hydration send failure:", err.message);
@@ -133,6 +131,7 @@ function setupSchedules() {
 
 startBot();
 
+// Keep-alive Express server implementation
 app.get("/", (req, res) => res.send("Browserless Health Bot Engine is Live!"));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`HTTP active on port ${PORT}`));

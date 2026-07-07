@@ -11,7 +11,7 @@ module.exports = {
   // Cron format: "minute hour * * *" (24-hour clock)
   specificReminders: [
     {
-      cron: "20 16 * * *", // 🔥 COMFORTABLE SYSTEM TEST: Fires at exactly 4:20 PM IST
+      cron: "35 16 * * *", // 🔥 COMFORTABLE TEST SLOT: Fires at exactly 4:35 PM IST
       message: "🚀 *SYSTEM TEST ACTIVE!* 🚀\nIf you are reading this, your Render server, timezone sync, and WhatsApp connection are working flawlessly! Your bot is alive! 🎉"
     },
     {
