@@ -10,6 +10,7 @@ const config = require("./config");
 const app = express();
 let sock = null;
 let hourlyIndex = 0;
+let cachedGroupId = null; // 👈 Saves your group ID in memory so we don't spam handshakes
 
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("whatsapp_session");
@@ -52,6 +53,9 @@ async function startBot() {
       console.log("\n=======================================================");
       console.log("✅ SUCCESS! WhatsApp client is officially linked and ready.");
       console.log("=======================================================\n");
+      
+      // Cache the group ID immediately upon login to avoid runtime handshake congestion
+      await cacheTargetGroup();
       setupSchedules();
     }
   });
@@ -59,43 +63,44 @@ async function startBot() {
   sock.ev.on("creds.update", saveCreds);
 }
 
-// Group Finder helper function with logs
-async function findGroupId(name) {
+// Fetches all groups once on startup and matches your target
+async function cacheTargetGroup() {
   try {
+    console.log("🔍 Resolving target group connection ID...");
     const chats = await sock.groupFetchAllParticipating();
     
-    console.log("\n📋 --- FOUND PARTICIPATING GROUPS ---");
     for (const id in chats) {
-      console.log(`Group Name: "${chats[id].subject}" | ID: ${id}`);
-    }
-    console.log("-------------------------------------\n");
-
-    for (const id in chats) {
-      if (chats[id].subject.trim().toLowerCase() === name.trim().toLowerCase()) {
-        return id;
+      if (chats[id].subject.trim().toLowerCase() === config.groupName.trim().toLowerCase()) {
+        cachedGroupId = id;
+        console.log(`📌 Target Group Locked: "${config.groupName}" -> ID: ${cachedGroupId}`);
+        return;
       }
     }
+    console.log(`⚠️ Warning: Could not find any group named "${config.groupName}" on this account.`);
   } catch (e) {
-    console.error("❌ Error fetching groups:", e.message);
+    console.error("❌ Pre-login group sync failed:", e.message);
   }
-  return null;
 }
 
 // -------- Scheduling Engines --------
 function setupSchedules() {
   console.log("⏰ Scheduling engines armed and ready.");
 
-  // 1. Daily reminders array loop
+  // 1. Daily routine reminders array loop
   config.specificReminders.forEach((reminder, index) => {
     cron.schedule(reminder.cron, async () => {
-      console.log(`⏱️ Specific timeline cron triggered for slot #${index + 1}...`);
-      const targetId = await findGroupId(config.groupName);
-      if (!targetId) {
-        console.error(`⚠️ Could not find group: ${config.groupName}`);
+      console.log(`⏱️ Daily cron slot #${index + 1} activated.`);
+      
+      // If cache dropped, try a quick hot-reload
+      if (!cachedGroupId) await cacheTargetGroup();
+
+      if (!cachedGroupId) {
+        console.error(`⚠️ Dispatch dropped: ID for "${config.groupName}" is missing.`);
         return;
       }
+
       try {
-        await sock.sendMessage(targetId, { text: reminder.message });
+        await sock.sendMessage(cachedGroupId, { text: reminder.message });
         console.log(`✅ Successfully dispatched daily scheduled alert #${index + 1}`);
       } catch (err) {
         console.error(`❌ Alert #${index + 1} send failure:`, err.message);
@@ -107,19 +112,18 @@ function setupSchedules() {
   cron.schedule(config.hourly.cron, async () => {
     const hour = new Date().getHours();
     if (hour < config.hourly.activeStartHour || hour > config.hourly.activeEndHour) {
-      console.log(`💤 Quiet hours active. Skipping hydration check for hour: ${hour}`);
       return;
     }
 
-    console.log("💧 Hourly hydration cron triggered. Fetching chat connection...");
-    const targetId = await findGroupId(config.groupName);
-    if (!targetId) return;
+    console.log("💧 Hourly hydration alert triggered.");
+    if (!cachedGroupId) await cacheTargetGroup();
+    if (!cachedGroupId) return;
 
     const message = config.hourly.messages[hourlyIndex % config.hourly.messages.length];
     hourlyIndex++;
 
     try {
-      await sock.sendMessage(targetId, { text: message });
+      await sock.sendMessage(cachedGroupId, { text: message });
       console.log("✅ Dispatched hourly water check text.");
     } catch (err) {
       console.error("❌ Hydration send failure:", err.message);
